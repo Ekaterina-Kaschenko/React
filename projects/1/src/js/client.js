@@ -16,13 +16,11 @@ class MainContainer extends Component {
   constructor(...args) {
     super(...args);
     this.state = {repeatCount: 1}
-    console.log(this)
+    this.changeField = this.changeField.bind(this);
   }
 
   changeField (event) {
-    console.log(this)
     this.setState({repeatCount: event.target.value})
-
   }
 
   render() {
@@ -30,8 +28,7 @@ class MainContainer extends Component {
     <div>
       <h1>Hello React</h1>
       <input type='number' value={this.state.repeatCount} onChange={this.changeField} />
-      <CounterComponent counter={3} repeat={this.state.repeatCount} />,
-      {() => {console.log(this)}}
+      <CounterComponent counter={3} repeat={this.state.repeatCount} />
     </div>
    )
   }
