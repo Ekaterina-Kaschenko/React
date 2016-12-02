@@ -1,6 +1,9 @@
+'use strict';
 import React, {Component} from "react";
 import ReactDOM from "react-dom";
+import EventEmitter from 'events';
 
+window.ee = new EventEmitter();
 const root = document.getElementById('app');
 const myNews = [
   {
@@ -29,6 +32,7 @@ const News = React.createClass({
       counter: 0
     }
   },
+
   render: function () {
     let newsTemplate;
     if (this.props.data.length > 0) {
@@ -74,9 +78,9 @@ const Article = React.createClass({
   },
   render: function () {
     let author = this.props.data.author,
-          text = this.props.data.text,
-          bigText = this.props.data.bigText,
-          visible = this.state.visible;
+        text = this.props.data.text,
+        bigText = this.props.data.bigText,
+        visible = this.state.visible;
 
     return (
       <div className='article'>
@@ -93,37 +97,104 @@ const Article = React.createClass({
   }
 });
 
-const TestInput = React.createClass({
-  componentDidMount: function () {
-    ReactDOM.findDOMNode(this.refs.myTestInput).focus();
+const Add = React.createClass({
+  getInitialState: function () {
+    return {
+      agreeNotChecked: true,
+      authorIsEmpty: true,
+      textIsEmpty: true
+    }
   },
-  onButtonClick: function () {
-    console.log(ReactDOM.findDOMNode(this.refs.myTestInput).value);
+  componentDidMount: function () {
+    ReactDOM.findDOMNode(this.refs.author).focus();
+  },
+  onButtonClick: function (e) {
+    e.preventDefault();
+    var textEl = ReactDOM.findDOMNode(this.refs.text);
+    var author = ReactDOM.findDOMNode(this.refs.author).value;
+    var text = ReactDOM.findDOMNode(this.refs.text).value;
+    var item = [{
+      author: author,
+      text: text,
+      bigText: '...'
+    }];
+    window.ee.emit('News.add', item);
+    textEl.value = '';
+    this.setState({textIsEmpty: true});
+  },
+  onCheckRuleClick: function (e) {
+    this.setState({agreeNotChecked: !this.state.agreeNotChecked});
+  },
+  onFieldChange: function (fieldName, e) {
+    if (e.target.value.trim().length > 0) {
+      this.setState({[''+fieldName]: false})
+    } else {
+      this.setState({[''+fieldName]: true})
+    }
   },
   render: function () {
+    var agreeNotChecked = this.state.agreeNotChecked,
+        authorIsEmpty = this.state.authorIsEmpty,
+        textIsEmpty = this.state.textIsEmpty;
     return (
-      <div>
+      <form className='add cf'>
         <input
-          className='test-input'
-          defaultValue=''
-          placeholder='enter value'
-          ref='myTestInput'
+          type='text'
+          className='add__author'
+          onChange={this.onFieldChange.bind(this, 'authorIsEmpty')}
+          placeholder='Your name'
+          ref='author'
         />
+        <textarea
+          className='add__text'
+          onChange={this.onFieldChange.bind(this, 'textIsEmpty')}
+          placeholder='Text news'
+          ref='text'
+        >
+        </textarea>
+        <label className='add__checkrule'>
+          <input
+            type='checkbox'
+            defaultChecked={false}
+            ref='checkrule'
+            onChange={this.onCheckRuleClick} />
+            I agree with rules
+        </label>
         <button
+          className='add__btn'
           onClick={this.onButtonClick}
-          ref='buttonClick'>Ok</button>
-      </div>
-    )
+          ref='buttonClick'
+          disabled={agreeNotChecked || authorIsEmpty || textIsEmpty}>
+          Add news
+        </button>
+      </form>
+    );
   }
-})
+});
 
 const App = React.createClass({
+  getInitialState: function () {
+    return {
+      news: myNews
+    };
+  },
+  componentDidMount: function () {
+    var self = this;
+    window.ee.addListener('News.add', function (item) {
+      var nextNews = item.concat(self.state.news);
+      self.setState({news: nextNews});
+    })
+  },
+  ComponentWillUnmount: function () {
+    window.ee.removeListener('News.add');
+  },
   render: function () {
+    console.log('render');
     return (
-      <div>
+      <div className='app'>
         <h3>Новости</h3>
-        <TestInput />
-        <News data={myNews} />
+        <Add />
+        <News data={this.state.news} />
       </div>
     );
   }
